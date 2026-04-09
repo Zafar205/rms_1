@@ -1,26 +1,77 @@
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fff8f7;
+  --foreground: #281715;
+  /* Defining the missing font variables used in the theme block */
+  --font-body: "Inter", ui-sans-serif, system-ui;
+  --font-headline: "Playfair Display", serif;
 }
 
-@theme inline {
+/* Removed 'inline' modifier - use standard '@theme' */
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-headline);
+
+  --color-primary: #ab000b;
+  --color-on-primary: #ffffff;
+  --color-primary-fixed: #ffdad5;
+  --color-primary-container: #d31c1c;
+  --color-secondary: #914d00;
+  --color-secondary-container: #fc9430;
+  --color-on-secondary-container: #663500;
+  --color-tertiary: #6b4f00;
+
+  --color-surface: #fff8f7;
+  --color-surface-bright: #fff8f7;
+  --color-surface-dim: #f3d3cf;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #fff0ee;
+  --color-surface-container: #ffe9e6;
+  --color-surface-container-high: #ffe2de;
+  --color-surface-container-highest: #fcdbd7;
+
+  --color-on-background: #281715;
+  --color-on-surface: #281715;
+  --color-on-surface-variant: #5d3f3c;
+  --color-outline: #916f6a;
+  --color-outline-variant: #e6bdb8;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Standard CSS rules */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Fallback included via the variables above */
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-headline);
+}
+
+.editorial-shadow {
+  box-shadow: 0 12px 32px rgba(40, 23, 21, 0.08);
+}
+
+.bg-flame-gradient {
+  background: linear-gradient(135deg, #ab000b 0%, #d31c1c 100%);
+}
+
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-rise {
+  animation: fade-rise 700ms ease-out both;
 }
