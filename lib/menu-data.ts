@@ -125,12 +125,19 @@ export const fallbackMenuItems: MenuItem[] = [
   },
 ];
 
+const normalizeCategory = (category: string) => category.trim().toUpperCase();
+
+const normalizeMenuItemCategory = (item: MenuItem): MenuItem => ({
+  ...item,
+  category: normalizeCategory(item.category),
+});
+
 const filterAvailableItems = (items: MenuItem[]) => items.filter((item) => item.isAvailable);
 
 const mapRowToMenuItem = (row: MenuItemRow): MenuItem => ({
   id: row.id,
   name: row.name,
-  category: row.category,
+  category: normalizeCategory(row.category),
   pricePkr: Number(row.price_pkr),
   description: row.description,
   image: resolveMenuImageSource(row.image),
@@ -148,7 +155,10 @@ export async function getMenuItems(options: GetMenuItemsOptions = {}): Promise<M
   const supabase = createSupabaseServerClient();
 
   if (!supabase) {
-    return includeUnavailable ? fallbackMenuItems : filterAvailableItems(fallbackMenuItems);
+    const normalizedFallbackItems = fallbackMenuItems.map(normalizeMenuItemCategory);
+    return includeUnavailable
+      ? normalizedFallbackItems
+      : filterAvailableItems(normalizedFallbackItems);
   }
 
   let query = supabase
@@ -168,7 +178,10 @@ export async function getMenuItems(options: GetMenuItemsOptions = {}): Promise<M
       return [];
     }
 
-    return includeUnavailable ? fallbackMenuItems : filterAvailableItems(fallbackMenuItems);
+    const normalizedFallbackItems = fallbackMenuItems.map(normalizeMenuItemCategory);
+    return includeUnavailable
+      ? normalizedFallbackItems
+      : filterAvailableItems(normalizedFallbackItems);
   }
 
   const mappedItems = (data ?? []).map(mapRowToMenuItem);

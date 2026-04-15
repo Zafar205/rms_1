@@ -5,7 +5,7 @@ export default function UpdatePasswordPage() {
   return (
     <AuthCard
       title="Choose a New Password"
-      subtitle="Set a new password for your account and continue to dashboard access."
+      subtitle="After OTP verification, set a new password to secure your account."
     >
       <UpdatePasswordForm />
     </AuthCard>

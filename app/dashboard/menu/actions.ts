@@ -26,6 +26,10 @@ const getTextValue = (value: FormDataEntryValue | null) => {
   return value.trim();
 };
 
+const getCategoryValue = (value: FormDataEntryValue | null) => {
+  return getTextValue(value).toUpperCase();
+};
+
 const parsePriceValue = (value: FormDataEntryValue | null) => {
   const normalized = getTextValue(value);
 
@@ -202,13 +206,17 @@ const revalidateMenuPages = () => {
   revalidatePath("/menu");
 };
 
+const isDuplicateValueError = (code: string | undefined) => code === "23505";
+const isUuidValue = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
 export async function createMenuItemAction(formData: FormData) {
   await requireAdminUser();
 
   const supabase = await getSupabaseAuthOrThrow();
   const storageSupabase = getSupabaseServiceOrThrow();
   const name = getTextValue(formData.get("name"));
-  const category = getTextValue(formData.get("category"));
+  const category = getCategoryValue(formData.get("category"));
   const description = getTextValue(formData.get("description"));
   const alt = getTextValue(formData.get("alt"));
   const pricePkr = parsePriceValue(formData.get("pricePkr"));
@@ -243,7 +251,7 @@ export async function updateMenuItemAction(formData: FormData) {
   const storageSupabase = getSupabaseServiceOrThrow();
   const id = getTextValue(formData.get("id"));
   const name = getTextValue(formData.get("name"));
-  const category = getTextValue(formData.get("category"));
+  const category = getCategoryValue(formData.get("category"));
   const description = getTextValue(formData.get("description"));
   const alt = getTextValue(formData.get("alt"));
   const pricePkr = parsePriceValue(formData.get("pricePkr"));
@@ -288,6 +296,115 @@ export async function deleteMenuItemAction(formData: FormData) {
 
   if (error) {
     throw new Error(`Failed to delete menu item: ${error.message}`);
+  }
+
+  revalidateMenuPages();
+}
+
+export async function createMenuCategoryAction(formData: FormData) {
+  await requireAdminUser();
+
+  const supabase = await getSupabaseAuthOrThrow();
+  const name = getCategoryValue(formData.get("name"));
+
+  if (!name) {
+    throw new Error("Category name is required.");
+  }
+
+  const { error } = await supabase.from("menu_categories").insert({ name });
+
+  if (error) {
+    if (isDuplicateValueError(error.code)) {
+      throw new Error(`Category ${name} already exists.`);
+    }
+
+    throw new Error(`Failed to create category: ${error.message}`);
+  }
+
+  revalidateMenuPages();
+}
+
+export async function updateMenuCategoryAction(formData: FormData) {
+  await requireAdminUser();
+
+  const supabase = await getSupabaseAuthOrThrow();
+  const id = getTextValue(formData.get("id"));
+  const oldName = getCategoryValue(formData.get("oldName"));
+  const name = getCategoryValue(formData.get("name"));
+  const categoryLookupName = oldName || name;
+
+  if (!name || !categoryLookupName) {
+    throw new Error("Category name is required.");
+  }
+
+  const { data: updatedCategories, error } = id && isUuidValue(id)
+    ? await supabase.from("menu_categories").update({ name }).eq("id", id).select("id")
+    : await supabase.from("menu_categories").update({ name }).eq("name", categoryLookupName).select("id");
+
+  if (error) {
+    if (isDuplicateValueError(error.code)) {
+      throw new Error(`Category ${name} already exists.`);
+    }
+
+    throw new Error(`Failed to update category: ${error.message}`);
+  }
+
+  if (!updatedCategories || updatedCategories.length === 0) {
+    throw new Error(
+      `Category ${categoryLookupName} was not found in the categories table. Refresh the page and try again.`
+    );
+  }
+
+  if (oldName && oldName !== name) {
+    const { error: updateItemCategoryError } = await supabase
+      .from("menu_items")
+      .update({ category: name })
+      .ilike("category", oldName);
+
+    if (updateItemCategoryError) {
+      throw new Error(`Failed to sync menu items for renamed category: ${updateItemCategoryError.message}`);
+    }
+  }
+
+  revalidateMenuPages();
+}
+
+export async function deleteMenuCategoryAction(formData: FormData) {
+  await requireAdminUser();
+
+  const supabase = await getSupabaseAuthOrThrow();
+  const id = getTextValue(formData.get("id"));
+  const name = getCategoryValue(formData.get("name"));
+
+  if (!name) {
+    throw new Error("Category name is required.");
+  }
+
+  const { count, error: usedByItemsError } = await supabase
+    .from("menu_items")
+    .select("id", { count: "exact", head: true })
+    .ilike("category", name);
+
+  if (usedByItemsError) {
+    throw new Error(`Unable to verify category usage: ${usedByItemsError.message}`);
+  }
+
+  if ((count ?? 0) > 0) {
+    throw new Error(`Cannot delete ${name}. ${count} menu item(s) still use this category.`);
+  }
+
+  const { data: deletedCategories, error } = id && isUuidValue(id)
+    ? await supabase.from("menu_categories").delete().eq("id", id).select("id")
+    : await supabase.from("menu_categories").delete().eq("name", name).select("id");
+
+  if (error) {
+    throw new Error(`Failed to delete category: ${error.message}`);
+  }
+
+  if (!deletedCategories || deletedCategories.length === 0) {
+    throw new Error(
+      `Category ${name} was not found in the categories table. Refresh the page and try again.`
+    );
   }
 
   revalidateMenuPages();

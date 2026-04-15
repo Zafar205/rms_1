@@ -3,6 +3,7 @@
 "use client";
 
 import type { MenuItem } from "@/lib/menu-data";
+import type { MenuCategory } from "@/lib/menu-categories";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { MdSearch } from "react-icons/md";
@@ -10,16 +11,36 @@ import SiteFooter from "../components/SiteFooter";
 import SiteNavbar from "../components/SiteNavbar";
 
 const formatPkr = (amount: number) => `PKR ${new Intl.NumberFormat("en-PK").format(amount)}`;
+const ALL_CATEGORY_VALUE = "ALL";
+const normalizeCategory = (value: string) => value.trim().toUpperCase();
 
 type MenuClientProps = {
   menuItems: MenuItem[];
+  menuCategories: MenuCategory[];
 };
 
-export default function MenuClient({ menuItems }: MenuClientProps) {
-  const categories = useMemo(
-    () => ["All", ...new Set(menuItems.map((item) => item.category))],
-    [menuItems]
-  );
+export default function MenuClient({ menuItems, menuCategories }: MenuClientProps) {
+  const categoryOptions = useMemo(() => {
+    const uniqueCategoryOptions = new Set<string>();
+
+    for (const category of menuCategories) {
+      const normalized = normalizeCategory(category.name);
+
+      if (normalized) {
+        uniqueCategoryOptions.add(normalized);
+      }
+    }
+
+    for (const item of menuItems) {
+      const normalized = normalizeCategory(item.category);
+
+      if (normalized) {
+        uniqueCategoryOptions.add(normalized);
+      }
+    }
+
+    return [ALL_CATEGORY_VALUE, ...[...uniqueCategoryOptions].sort((left, right) => left.localeCompare(right))];
+  }, [menuCategories, menuItems]);
   const lowestPrice = useMemo(
     () => (menuItems.length > 0 ? Math.min(...menuItems.map((item) => item.pricePkr)) : 0),
     [menuItems]
@@ -30,7 +51,7 @@ export default function MenuClient({ menuItems }: MenuClientProps) {
   );
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORY_VALUE);
   const [minPrice, setMinPrice] = useState(lowestPrice);
   const [maxPrice, setMaxPrice] = useState(highestPrice);
   const [sortBy, setSortBy] = useState<"featured" | "price-asc" | "price-desc">("featured");
@@ -39,7 +60,8 @@ export default function MenuClient({ menuItems }: MenuClientProps) {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     const results = menuItems.filter((item) => {
-      const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+      const matchesCategory =
+        selectedCategory === ALL_CATEGORY_VALUE || normalizeCategory(item.category) === selectedCategory;
       const hasPriceFilter = highestPrice > 0;
       const matchesPrice =
         !hasPriceFilter || (item.pricePkr >= Math.min(minPrice, maxPrice) && item.pricePkr <= maxPrice);
@@ -111,9 +133,9 @@ export default function MenuClient({ menuItems }: MenuClientProps) {
                     onChange={(event) => setSelectedCategory(event.target.value)}
                     className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-3 py-3 outline-none"
                   >
-                    {categories.map((category) => (
+                    {categoryOptions.map((category) => (
                       <option key={category} value={category}>
-                        {category}
+                        {category === ALL_CATEGORY_VALUE ? "All" : category}
                       </option>
                     ))}
                   </select>
@@ -210,7 +232,7 @@ export default function MenuClient({ menuItems }: MenuClientProps) {
                   type="button"
                   onClick={() => {
                     setSearchQuery("");
-                    setSelectedCategory("All");
+                    setSelectedCategory(ALL_CATEGORY_VALUE);
                     setMinPrice(lowestPrice);
                     setMaxPrice(highestPrice);
                     setSortBy("featured");

@@ -17,12 +17,6 @@ export default function ForgotPasswordForm() {
         </p>
       ) : null}
 
-      {state.success ? (
-        <p className="rounded-lg border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">
-          {state.success}
-        </p>
-      ) : null}
-
       <div className="space-y-1.5">
         <label
           htmlFor="forgot-password-email"
@@ -46,7 +40,7 @@ export default function ForgotPasswordForm() {
         disabled={isPending}
         className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-on-primary transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isPending ? "Sending reset link..." : "Send reset link"}
+        {isPending ? "Sending OTP..." : "Send OTP"}
       </button>
 
       <p className="text-center text-sm text-stone-300">

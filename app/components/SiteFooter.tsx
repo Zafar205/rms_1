@@ -12,6 +12,7 @@ export default function SiteFooter() {
               width={220}
               height={88}
               className="h-16 w-auto md:h-20"
+              loading="eager"
             />
           </div>
           <p className="text-sm tracking-wide text-stone-300">

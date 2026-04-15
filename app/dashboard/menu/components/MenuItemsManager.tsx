@@ -4,17 +4,22 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { MdAdd, MdClose, MdDelete, MdEdit, MdSave } from "react-icons/md";
+import { MdAdd, MdCategory, MdClose, MdDelete, MdEdit, MdSave } from "react-icons/md";
 import type { MenuItem } from "@/lib/menu-data";
+import type { MenuCategory } from "@/lib/menu-categories";
 import ImageUploadField from "./ImageUploadField";
 
 type MenuAction = (formData: FormData) => Promise<void>;
 
 type MenuItemsManagerProps = {
   menuItems: MenuItem[];
+  menuCategories: MenuCategory[];
   createAction: MenuAction;
   updateAction: MenuAction;
   deleteAction: MenuAction;
+  createCategoryAction: MenuAction;
+  updateCategoryAction: MenuAction;
+  deleteCategoryAction: MenuAction;
 };
 
 type ModalShellProps = {
@@ -22,6 +27,10 @@ type ModalShellProps = {
   onClose: () => void;
   children: ReactNode;
 };
+
+const normalizeCategory = (value: string) => value.trim().toUpperCase();
+const isUuidValue = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
 function ModalShell({ title, onClose, children }: ModalShellProps) {
   return (
@@ -53,19 +62,69 @@ function ModalShell({ title, onClose, children }: ModalShellProps) {
 
 export default function MenuItemsManager({
   menuItems,
+  menuCategories,
   createAction,
   updateAction,
   deleteAction,
+  createCategoryAction,
+  updateCategoryAction,
+  deleteCategoryAction,
 }: MenuItemsManagerProps) {
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+  const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [createError, setCreateError] = useState("");
   const [editError, setEditError] = useState("");
+  const [createCategoryError, setCreateCategoryError] = useState("");
+  const [editCategoryError, setEditCategoryError] = useState("");
 
   const editingItem = useMemo(
     () => menuItems.find((item) => item.id === editingItemId) ?? null,
     [menuItems, editingItemId]
   );
+  const managedMenuCategories = useMemo(
+    () =>
+      menuCategories.filter(
+        (category) => isUuidValue(category.id) && normalizeCategory(category.name).length > 0
+      ),
+    [menuCategories]
+  );
+  const hasLegacyCategoryEntries = managedMenuCategories.length !== menuCategories.length;
+  const editingCategory = useMemo(
+    () => managedMenuCategories.find((category) => category.id === editingCategoryId) ?? null,
+    [managedMenuCategories, editingCategoryId]
+  );
+  const categoryOptions = useMemo(() => {
+    const uniqueCategoryOptions = new Set<string>();
+
+    for (const category of managedMenuCategories) {
+      const normalized = normalizeCategory(category.name);
+
+      if (normalized) {
+        uniqueCategoryOptions.add(normalized);
+      }
+    }
+
+    return [...uniqueCategoryOptions].sort((left, right) => left.localeCompare(right));
+  }, [managedMenuCategories]);
+
+  const editingItemCategory = useMemo(
+    () => (editingItem ? normalizeCategory(editingItem.category) : ""),
+    [editingItem]
+  );
+
+  const editCategoryOptions = useMemo(() => {
+    if (!editingItemCategory) {
+      return categoryOptions;
+    }
+
+    if (categoryOptions.includes(editingItemCategory)) {
+      return categoryOptions;
+    }
+
+    return [editingItemCategory, ...categoryOptions].sort((left, right) => left.localeCompare(right));
+  }, [categoryOptions, editingItemCategory]);
 
   const handleCreateAction = async (formData: FormData) => {
     setCreateError("");
@@ -89,6 +148,44 @@ export default function MenuItemsManager({
     }
   };
 
+  const handleCreateCategoryAction = async (formData: FormData) => {
+    setCreateCategoryError("");
+    setEditCategoryError("");
+
+    try {
+      await createCategoryAction(formData);
+    } catch (error) {
+      setCreateCategoryError(error instanceof Error ? error.message : "Failed to create category.");
+    }
+  };
+
+  const handleUpdateCategoryAction = async (formData: FormData) => {
+    setEditCategoryError("");
+
+    try {
+      await updateCategoryAction(formData);
+      setEditingCategoryId(null);
+    } catch (error) {
+      setEditCategoryError(error instanceof Error ? error.message : "Failed to update category.");
+    }
+  };
+
+  const handleDeleteCategoryAction = async (formData: FormData) => {
+    setEditCategoryError("");
+
+    try {
+      await deleteCategoryAction(formData);
+
+      const deletedCategoryId = formData.get("id");
+
+      if (typeof deletedCategoryId === "string" && deletedCategoryId === editingCategoryId) {
+        setEditingCategoryId(null);
+      }
+    } catch (error) {
+      setEditCategoryError(error instanceof Error ? error.message : "Failed to delete category.");
+    }
+  };
+
   return (
     <section className="rounded-2xl border border-white/10 bg-[#211715] p-5 md:p-6">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
@@ -101,6 +198,19 @@ export default function MenuItemsManager({
           <p className="rounded-md border border-white/15 bg-[#1a1312] px-3 py-2 text-xs font-bold uppercase tracking-wide text-stone-300">
             {menuItems.length} items
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              setCreateCategoryError("");
+              setEditCategoryError("");
+              setEditingCategoryId(null);
+              setCategoryModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-bold text-stone-100 transition-colors hover:bg-white/10"
+          >
+            <MdCategory className="text-lg" />
+            Categories
+          </button>
           <button
             type="button"
             onClick={() => setCreateModalOpen(true)}
@@ -142,7 +252,7 @@ export default function MenuItemsManager({
 
                 <div className="flex items-center gap-2 text-xs">
                   <span className="rounded-md bg-white/10 px-2 py-1 font-semibold text-stone-200">
-                    {item.category}
+                    {normalizeCategory(item.category)}
                   </span>
                   <span
                     className={`rounded-md px-2 py-1 font-semibold ${
@@ -196,6 +306,153 @@ export default function MenuItemsManager({
         </div>
       )}
 
+      {isCategoryModalOpen ? (
+        <ModalShell title="Manage Categories" onClose={() => setCategoryModalOpen(false)}>
+          <div className="space-y-4">
+            <form
+              action={handleCreateCategoryAction}
+              className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+            >
+              <div className="space-y-1.5">
+                <label htmlFor="new-category-name" className="text-xs font-bold uppercase tracking-wide">
+                  New Category
+                </label>
+                <input
+                  id="new-category-name"
+                  name="name"
+                  required
+                  placeholder="HANDI SPECIAL"
+                  className="w-full rounded-lg border border-white/20 bg-[#120d0c] px-3 py-2.5 text-sm uppercase text-stone-100 outline-none ring-primary/50 transition placeholder:text-stone-500 focus:ring-2"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-on-primary transition-transform hover:scale-[0.98]"
+              >
+                <MdAdd className="text-base" />
+                Add Category
+              </button>
+            </form>
+
+            {createCategoryError ? (
+              <p className="rounded-lg border border-red-300/40 bg-red-300/10 px-3 py-2 text-sm text-red-100">
+                {createCategoryError}
+              </p>
+            ) : null}
+
+            {editCategoryError ? (
+              <p className="rounded-lg border border-red-300/40 bg-red-300/10 px-3 py-2 text-sm text-red-100">
+                {editCategoryError}
+              </p>
+            ) : null}
+
+            {editingCategoryId && !editingCategory ? (
+              <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+                This category is no longer available. Refresh and try again.
+              </p>
+            ) : null}
+
+            {hasLegacyCategoryEntries ? (
+              <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+                Ignored legacy fallback categories. Refresh after restarting the app to clear stale values.
+              </p>
+            ) : null}
+
+            {managedMenuCategories.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-white/20 bg-[#120d0c] p-4 text-sm text-stone-300">
+                No categories yet. Add your first category above.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {managedMenuCategories.map((category) => {
+                  const normalizedName = normalizeCategory(category.name);
+                  const isEditingCategory = editingCategoryId === category.id;
+
+                  return (
+                    <div
+                      key={category.id}
+                      className="rounded-lg border border-white/10 bg-[#120d0c] p-3"
+                    >
+                      {isEditingCategory ? (
+                        <form
+                          action={handleUpdateCategoryAction}
+                          className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"
+                        >
+                          <input type="hidden" name="id" value={category.id} />
+                          <input type="hidden" name="oldName" value={normalizedName} />
+                          <input
+                            name="name"
+                            required
+                            defaultValue={normalizedName}
+                            className="w-full rounded-lg border border-white/20 bg-[#1a1312] px-3 py-2.5 text-sm uppercase text-stone-100 outline-none ring-primary/50 transition placeholder:text-stone-500 focus:ring-2"
+                          />
+                          <button
+                            type="submit"
+                            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-on-primary transition-transform hover:scale-[0.98]"
+                          >
+                            <MdSave className="text-base" />
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingCategoryId(null)}
+                            className="rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-stone-200 transition-colors hover:bg-white/10"
+                          >
+                            Cancel
+                          </button>
+                        </form>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold text-stone-200">
+                            {normalizedName}
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditCategoryError("");
+                                setEditingCategoryId(category.id);
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs font-bold uppercase tracking-wide text-stone-100 transition-colors hover:bg-white/10"
+                            >
+                              <MdEdit className="text-base" />
+                              Edit
+                            </button>
+
+                            <form action={handleDeleteCategoryAction}>
+                              <input type="hidden" name="id" value={category.id} />
+                              <input type="hidden" name="name" value={normalizedName} />
+                              <button
+                                type="submit"
+                                onClick={(event) => {
+                                  const confirmed = window.confirm(
+                                    `Delete ${normalizedName}? This category must not be used by menu items.`
+                                  );
+
+                                  if (!confirmed) {
+                                    event.preventDefault();
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-red-300/40 bg-red-300/10 px-3 py-2 text-xs font-bold uppercase tracking-wide text-red-100 transition-colors hover:bg-red-300/20"
+                              >
+                                <MdDelete className="text-base" />
+                                Delete
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </ModalShell>
+      ) : null}
+
       {isCreateModalOpen ? (
         <ModalShell title="Add New Item" onClose={() => setCreateModalOpen(false)}>
           <form action={handleCreateAction} className="space-y-4">
@@ -217,13 +474,30 @@ export default function MenuItemsManager({
                 <label htmlFor="new-category" className="text-xs font-bold uppercase tracking-wide">
                   Category
                 </label>
-                <input
+                <select
                   id="new-category"
                   name="category"
                   required
-                  placeholder="Main Course"
-                  className="w-full rounded-lg border border-white/20 bg-[#120d0c] px-3 py-2.5 text-sm text-stone-100 outline-none ring-primary/50 transition placeholder:text-stone-500 focus:ring-2"
-                />
+                  defaultValue=""
+                  disabled={categoryOptions.length === 0}
+                  className="w-full rounded-lg border border-white/20 bg-[#120d0c] px-3 py-2.5 text-sm uppercase text-stone-100 outline-none ring-primary/50 transition placeholder:text-stone-500 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <option value="" disabled>
+                    {categoryOptions.length > 0
+                      ? "Select category"
+                      : "Create a category first"}
+                  </option>
+                  {categoryOptions.map((categoryOption) => (
+                    <option key={categoryOption} value={categoryOption}>
+                      {categoryOption}
+                    </option>
+                  ))}
+                </select>
+                {categoryOptions.length === 0 ? (
+                  <p className="text-xs text-amber-200">
+                    Use the Categories button to create at least one category.
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-1.5">
@@ -330,12 +604,29 @@ export default function MenuItemsManager({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wide">Category</label>
-                <input
+                <select
                   name="category"
-                  defaultValue={editingItem.category}
+                  defaultValue={normalizeCategory(editingItem.category)}
                   required
-                  className="w-full rounded-lg border border-white/20 bg-[#120d0c] px-3 py-2.5 text-sm text-stone-100 outline-none ring-primary/50 transition placeholder:text-stone-500 focus:ring-2"
-                />
+                  disabled={editCategoryOptions.length === 0}
+                  className="w-full rounded-lg border border-white/20 bg-[#120d0c] px-3 py-2.5 text-sm uppercase text-stone-100 outline-none ring-primary/50 transition placeholder:text-stone-500 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {editCategoryOptions.map((categoryOption) => (
+                    <option key={categoryOption} value={categoryOption}>
+                      {categoryOption}
+                    </option>
+                  ))}
+                </select>
+                {editCategoryOptions.length === 0 ? (
+                  <p className="text-xs text-amber-200">
+                    No categories available. Create one from the Categories button.
+                  </p>
+                ) : null}
+                {editingItemCategory && !categoryOptions.includes(editingItemCategory) ? (
+                  <p className="text-xs text-amber-200">
+                    This item uses a category not found in categories table. Save to move it to a managed category.
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-1.5">

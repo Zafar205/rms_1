@@ -46,6 +46,7 @@ export default function SiteNavbar() {
             height={96}
             priority
             className="h-16 w-auto sm:h-20"
+            loading="eager"
           />
         </Link>
 

@@ -166,8 +166,12 @@ export async function forgotPasswordAction(
   }
 
   const siteUrl = await getSiteUrl();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/auth/confirm?flow=recovery&next=/auth/update-password`,
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: false,
+      emailRedirectTo: `${siteUrl}/auth/confirm?flow=recovery&next=/auth/update-password`,
+    },
   });
 
   if (error) {
@@ -176,8 +180,52 @@ export async function forgotPasswordAction(
     };
   }
 
+  const encodedEmail = encodeURIComponent(email);
+  redirect(`/auth/verify-reset-otp?email=${encodedEmail}`);
+}
+
+export async function verifyResetOtpAction(
+  _previousState: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const email = getTextValue(formData.get("email")).toLowerCase();
+  const otp = getTextValue(formData.get("otp")).replace(/\s+/g, "");
+
+  if (!email) {
+    return {
+      error: "Email is required.",
+    };
+  }
+
+  if (!/^\d{6,10}$/.test(otp)) {
+    return {
+      error: "Enter the OTP code exactly as shown in your email.",
+    };
+  }
+
+  const supabase = await createSupabaseServerAuthClient();
+
+  if (!supabase) {
+    return {
+      error:
+        "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY.",
+    };
+  }
+
+  for (const type of ["email", "magiclink"] as const) {
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type,
+    });
+
+    if (!error) {
+      redirect("/auth/update-password");
+    }
+  }
+
   return {
-    success: "Password reset email sent. Check your inbox to continue.",
+    error: "The OTP is invalid or expired. Request a new code and try again.",
   };
 }
 
@@ -235,9 +283,8 @@ export async function updatePasswordAction(
     };
   }
 
-  return {
-    success: "Password updated successfully. You can now continue to your dashboard.",
-  };
+  await supabase.auth.signOut();
+  redirect("/auth/sign-in?message=Password%20updated%20successfully.%20Please%20sign%20in%20again.");
 }
 
 export async function signOutAction() {

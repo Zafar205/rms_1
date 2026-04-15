@@ -170,5 +170,66 @@ with check (
   )
 );
 
+create table if not exists public.menu_categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique check (name = upper(trim(name))),
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create or replace function public.update_menu_categories_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = timezone('utc', now());
+  return new;
+end;
+$$;
+
+drop trigger if exists menu_categories_updated_at on public.menu_categories;
+create trigger menu_categories_updated_at
+before update on public.menu_categories
+for each row
+execute function public.update_menu_categories_updated_at();
+
+alter table public.menu_categories enable row level security;
+
+drop policy if exists menu_categories_select_all on public.menu_categories;
+create policy menu_categories_select_all
+on public.menu_categories
+for select
+to anon, authenticated
+using (true);
+
+drop policy if exists menu_categories_write_admin_only on public.menu_categories;
+create policy menu_categories_write_admin_only
+on public.menu_categories
+for all
+to authenticated
+using (
+  exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.role = 'admin'
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.role = 'admin'
+  )
+);
+
+insert into public.menu_categories (name)
+select distinct upper(trim(mi.category))
+from public.menu_items mi
+where trim(mi.category) <> ''
+on conflict (name) do nothing;
+
 create index if not exists menu_items_category_idx on public.menu_items(category);
 create index if not exists menu_items_available_idx on public.menu_items(is_available);
+create index if not exists menu_categories_name_idx on public.menu_categories(name);

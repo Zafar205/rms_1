@@ -1,7 +1,15 @@
 import { getMenuItems } from "@/lib/menu-data";
+import { getMenuCategories } from "@/lib/menu-categories";
 import { requireAdminUser } from "@/lib/auth/server";
 import { hasSupabaseConfiguration } from "@/lib/supabase/server";
-import { createMenuItemAction, deleteMenuItemAction, updateMenuItemAction } from "./actions";
+import {
+  createMenuCategoryAction,
+  createMenuItemAction,
+  deleteMenuCategoryAction,
+  deleteMenuItemAction,
+  updateMenuCategoryAction,
+  updateMenuItemAction,
+} from "./actions";
 import MenuItemsManager from "./components/MenuItemsManager";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +17,10 @@ export const dynamic = "force-dynamic";
 export default async function MenuDashboardPage() {
   await requireAdminUser();
 
-  const menuItems = await getMenuItems({ includeUnavailable: true, fallbackOnError: false });
+  const [menuItems, menuCategories] = await Promise.all([
+    getMenuItems({ includeUnavailable: true, fallbackOnError: false }),
+    getMenuCategories(),
+  ]);
   const supabaseConfigured = hasSupabaseConfiguration();
 
   return (
@@ -24,9 +35,13 @@ export default async function MenuDashboardPage() {
 
       <MenuItemsManager
         menuItems={menuItems}
+        menuCategories={menuCategories}
         createAction={createMenuItemAction}
         updateAction={updateMenuItemAction}
         deleteAction={deleteMenuItemAction}
+        createCategoryAction={createMenuCategoryAction}
+        updateCategoryAction={updateMenuCategoryAction}
+        deleteCategoryAction={deleteMenuCategoryAction}
       />
     </section>
   );
