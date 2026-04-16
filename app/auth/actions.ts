@@ -98,18 +98,26 @@ export async function signUpAction(
   formData: FormData
 ): Promise<AuthActionState> {
   const email = getTextValue(formData.get("email")).toLowerCase();
+  const phone = getTextValue(formData.get("phone"));
   const password = getTextValue(formData.get("password"));
+  const confirmPassword = getTextValue(formData.get("confirmPassword"));
   const role = parseRoleValue(formData.get("role"));
 
-  if (!email || !password) {
+  if (!email || !password || !confirmPassword) {
     return {
-      error: "Email and password are required.",
+      error: "Email, password, and confirm password are required.",
     };
   }
 
   if (password.length < 8) {
     return {
       error: "Password must be at least 8 characters long.",
+    };
+  }
+
+  if (password !== confirmPassword) {
+    return {
+      error: "Passwords do not match.",
     };
   }
 
@@ -123,20 +131,40 @@ export async function signUpAction(
   }
 
   const siteUrl = await getSiteUrl();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         role,
+        ...(phone ? { phone } : {}),
       },
       emailRedirectTo: `${siteUrl}/auth/confirm`,
     },
   });
 
   if (error) {
+    if (/already registered|already exists/i.test(error.message)) {
+      return {
+        error: "An account with this email already exists. Sign in instead or reset your password.",
+      };
+    }
+
     return {
       error: error.message,
+    };
+  }
+
+  const identities = data.user?.identities;
+  const isExistingUserResponse =
+    Boolean(data.user) &&
+    !data.session &&
+    Array.isArray(identities) &&
+    identities.length === 0;
+
+  if (isExistingUserResponse) {
+    return {
+      error: "An account with this email already exists. Sign in instead or reset your password.",
     };
   }
 

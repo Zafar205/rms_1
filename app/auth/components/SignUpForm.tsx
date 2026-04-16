@@ -33,12 +33,44 @@ export default function SignUpForm() {
       </div>
 
       <div className="space-y-1.5">
+        <label htmlFor="sign-up-phone" className="text-xs font-bold uppercase tracking-wide text-stone-200">
+          Phone Number (Optional)
+        </label>
+        <input
+          id="sign-up-phone"
+          name="phone"
+          type="tel"
+          autoComplete="tel"
+          placeholder="+92 300 1234567"
+          className="w-full rounded-lg border border-white/20 bg-[#120d0c] px-3 py-2.5 text-sm text-stone-100 outline-none ring-amber-300/40 transition placeholder:text-stone-500 focus:ring-2"
+        />
+      </div>
+
+      <div className="space-y-1.5">
         <label htmlFor="sign-up-password" className="text-xs font-bold uppercase tracking-wide text-stone-200">
           Password
         </label>
         <input
           id="sign-up-password"
           name="password"
+          type="password"
+          required
+          minLength={8}
+          autoComplete="new-password"
+          className="w-full rounded-lg border border-white/20 bg-[#120d0c] px-3 py-2.5 text-sm text-stone-100 outline-none ring-amber-300/40 transition placeholder:text-stone-500 focus:ring-2"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label
+          htmlFor="sign-up-confirm-password"
+          className="text-xs font-bold uppercase tracking-wide text-stone-200"
+        >
+          Confirm Password
+        </label>
+        <input
+          id="sign-up-confirm-password"
+          name="confirmPassword"
           type="password"
           required
           minLength={8}
