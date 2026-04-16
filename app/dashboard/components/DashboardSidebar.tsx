@@ -8,6 +8,7 @@ import {
   MdChevronRight,
   MdEventSeat,
   MdLogout,
+  MdPointOfSale,
   MdRestaurantMenu,
   MdShoppingBag,
 } from "react-icons/md";
@@ -17,6 +18,11 @@ const adminDashboardLinks = [
     href: "/dashboard/menu",
     label: "Menu",
     icon: MdRestaurantMenu,
+  },
+  {
+    href: "/dashboard/pos",
+    label: "POS",
+    icon: MdPointOfSale,
   },
   {
     href: "/dashboard/reservations",
@@ -78,7 +84,7 @@ export default function DashboardSidebar({ role, userEmail }: DashboardSidebarPr
         {isAdmin ? (
           <p className="mt-1">Use the Menu tab to add, edit, and hide dishes from the public menu.</p>
         ) : (
-          <p className="mt-1">Cashier access includes orders and reservations only.</p>
+          <p className="mt-1">Cashier access includes POS, orders, and reservations.</p>
         )}
       </div>
 

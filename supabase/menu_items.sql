@@ -230,6 +230,95 @@ from public.menu_items mi
 where trim(mi.category) <> ''
 on conflict (name) do nothing;
 
+create table if not exists public.orders (
+  id uuid primary key default gen_random_uuid(),
+  customer_name text not null default 'Walk-in Customer',
+  customer_phone text,
+  subtotal_pkr integer not null check (subtotal_pkr >= 0),
+  tax_pkr integer not null default 0 check (tax_pkr >= 0),
+  total_pkr integer not null check (total_pkr >= 0),
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create or replace function public.update_orders_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = timezone('utc', now());
+  return new;
+end;
+$$;
+
+drop trigger if exists orders_updated_at on public.orders;
+create trigger orders_updated_at
+before update on public.orders
+for each row
+execute function public.update_orders_updated_at();
+
+alter table public.orders enable row level security;
+
+drop policy if exists orders_select_authenticated on public.orders;
+create policy orders_select_authenticated
+on public.orders
+for select
+to authenticated
+using (true);
+
+drop policy if exists orders_insert_authenticated on public.orders;
+create policy orders_insert_authenticated
+on public.orders
+for insert
+to authenticated
+with check (auth.uid() = created_by);
+
+drop policy if exists orders_delete_authenticated on public.orders;
+create policy orders_delete_authenticated
+on public.orders
+for delete
+to authenticated
+using (true);
+
+create table if not exists public.order_items (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.orders(id) on delete cascade,
+  menu_item_id uuid references public.menu_items(id) on delete set null,
+  item_name text not null,
+  item_price_pkr integer not null check (item_price_pkr > 0),
+  quantity integer not null check (quantity > 0),
+  line_total_pkr integer not null check (line_total_pkr > 0),
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+alter table public.order_items enable row level security;
+
+drop policy if exists order_items_select_authenticated on public.order_items;
+create policy order_items_select_authenticated
+on public.order_items
+for select
+to authenticated
+using (true);
+
+drop policy if exists order_items_insert_authenticated on public.order_items;
+create policy order_items_insert_authenticated
+on public.order_items
+for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from public.orders o
+    where o.id = order_id
+      and o.created_by = auth.uid()
+  )
+);
+
 create index if not exists menu_items_category_idx on public.menu_items(category);
 create index if not exists menu_items_available_idx on public.menu_items(is_available);
 create index if not exists menu_categories_name_idx on public.menu_categories(name);
+create index if not exists orders_created_at_idx on public.orders(created_at desc);
+create index if not exists orders_created_by_idx on public.orders(created_by);
+create index if not exists order_items_order_id_idx on public.order_items(order_id);
+create index if not exists order_items_menu_item_id_idx on public.order_items(menu_item_id);

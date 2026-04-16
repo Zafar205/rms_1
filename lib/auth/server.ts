@@ -10,7 +10,7 @@ const signInPath = "/auth/sign-in";
 const parseRole = (value: unknown): AppRole => (value === "admin" ? "admin" : "cashier");
 
 export const getDashboardHomePathForRole = (role: AppRole) =>
-  role === "admin" ? "/dashboard/menu" : "/dashboard/orders";
+  role === "admin" ? "/dashboard/menu" : "/dashboard/pos";
 
 export const getUserRoleById = cache(async (userId: string, metadataRole?: unknown): Promise<AppRole> => {
   const supabase = await createSupabaseServerAuthClient();
