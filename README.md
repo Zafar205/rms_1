@@ -34,3 +34,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Reservations Feature Setup
+
+Run the SQL migration below in your Supabase SQL editor to create the reservations table and policies:
+
+- `supabase/reservations.sql`
+
+Set these environment variables before running the app:
+
+- `RESEND_API_KEY` (your Resend API key)
+- `RESEND_FROM_EMAIL` (a verified sender email/domain in Resend)
+- `RESEND_REPLY_TO` (optional)

@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { IconType } from "react-icons";
+import ReservationForm from "./components/ReservationForm";
 import SiteFooter from "./components/SiteFooter";
 import SiteNavbar from "./components/SiteNavbar";
 import {
@@ -255,68 +256,7 @@ export default function Home() {
                 </p>
               </div>
 
-              <form className="space-y-8">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="block px-1 text-sm font-bold uppercase tracking-tight text-on-surface-variant">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter your name"
-                      className="w-full rounded-lg border-none bg-surface-container-low px-4 py-4 outline-none transition-all focus:ring-2 focus:ring-primary/40"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block px-1 text-sm font-bold uppercase tracking-tight text-on-surface-variant">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="name@example.com"
-                      className="w-full rounded-lg border-none bg-surface-container-low px-4 py-4 outline-none transition-all focus:ring-2 focus:ring-primary/40"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-6 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <label className="block px-1 text-sm font-bold uppercase tracking-tight text-on-surface-variant">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full appearance-none rounded-lg border-none bg-surface-container-low px-4 py-4 outline-none transition-all focus:ring-2 focus:ring-primary/40"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block px-1 text-sm font-bold uppercase tracking-tight text-on-surface-variant">
-                      Time
-                    </label>
-                    <select className="w-full rounded-lg border-none bg-surface-container-low px-4 py-4 outline-none transition-all focus:ring-2 focus:ring-primary/40">
-                      <option>18:00</option>
-                      <option>19:30</option>
-                      <option>21:00</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block px-1 text-sm font-bold uppercase tracking-tight text-on-surface-variant">
-                      Guests
-                    </label>
-                    <select className="w-full rounded-lg border-none bg-surface-container-low px-4 py-4 outline-none transition-all focus:ring-2 focus:ring-primary/40">
-                      <option>2 Persons</option>
-                      <option>4 Persons</option>
-                      <option>6+ Persons</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button className="bg-flame-gradient w-full rounded-lg py-5 text-xl font-black text-on-primary shadow-xl transition-all hover:shadow-primary/20">
-                  Confirm Reservation
-                </button>
-              </form>
+              <ReservationForm />
             </div>
           </div>
         </div>
