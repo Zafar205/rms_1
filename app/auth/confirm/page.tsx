@@ -1,7 +1,7 @@
 "use client";
 
 import type { EmailOtpType } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserAuthClient } from "@/lib/supabase/browser";
 
@@ -32,7 +32,22 @@ const buildUpdatePasswordPath = (params: Record<string, string | undefined>) => 
   return `${url.pathname}${url.search}`;
 };
 
-export default function AuthConfirmPage() {
+function AuthConfirmView({ statusMessage }: { statusMessage: string }) {
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-[#140f0e] px-4 py-10 text-stone-100 sm:px-6">
+      <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-amber-600/20 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 bottom-0 h-64 w-64 rounded-full bg-red-700/20 blur-3xl" />
+
+      <section className="relative mx-auto w-full max-w-md rounded-2xl border border-white/10 bg-[#211715]/90 p-6 shadow-2xl sm:p-8">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Desi Vesi RMS</p>
+        <h1 className="mt-2 text-3xl font-black leading-tight text-amber-100">Verifying Link</h1>
+        <p className="mt-2 text-sm text-stone-300">{statusMessage}</p>
+      </section>
+    </main>
+  );
+}
+
+function AuthConfirmWithSearchParams() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [statusMessage, setStatusMessage] = useState("Finalizing your sign-in...");
@@ -158,16 +173,13 @@ export default function AuthConfirmPage() {
     };
   }, [router, searchParams]);
 
-  return (
-    <main className="relative min-h-screen overflow-hidden bg-[#140f0e] px-4 py-10 text-stone-100 sm:px-6">
-      <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-amber-600/20 blur-3xl" />
-      <div className="pointer-events-none absolute -right-20 bottom-0 h-64 w-64 rounded-full bg-red-700/20 blur-3xl" />
+  return <AuthConfirmView statusMessage={statusMessage} />;
+}
 
-      <section className="relative mx-auto w-full max-w-md rounded-2xl border border-white/10 bg-[#211715]/90 p-6 shadow-2xl sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Desi Vesi RMS</p>
-        <h1 className="mt-2 text-3xl font-black leading-tight text-amber-100">Verifying Link</h1>
-        <p className="mt-2 text-sm text-stone-300">{statusMessage}</p>
-      </section>
-    </main>
+export default function AuthConfirmPage() {
+  return (
+    <Suspense fallback={<AuthConfirmView statusMessage="Finalizing your sign-in..." />}>
+      <AuthConfirmWithSearchParams />
+    </Suspense>
   );
 }

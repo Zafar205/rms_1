@@ -1,12 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-export default function AccountConfirmationPage() {
-  const searchParams = useSearchParams();
-  const email = searchParams.get("email") ?? "your inbox";
-
+function AccountConfirmationContent({ email }: { email: string }) {
   return (
     <section className="space-y-6">
       <header className="space-y-2">
@@ -33,5 +31,20 @@ export default function AccountConfirmationPage() {
         </Link>
       </div>
     </section>
+  );
+}
+
+function AccountConfirmationWithSearchParams() {
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email") ?? "your inbox";
+
+  return <AccountConfirmationContent email={email} />;
+}
+
+export default function AccountConfirmationPage() {
+  return (
+    <Suspense fallback={<AccountConfirmationContent email="your inbox" />}>
+      <AccountConfirmationWithSearchParams />
+    </Suspense>
   );
 }
