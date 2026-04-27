@@ -49,7 +49,7 @@ export default function DashboardSidebar({ role, userEmail }: DashboardSidebarPr
   const isAdmin = role === "admin";
 
   return (
-    <aside className="sticky top-0 h-screen w-full border-b border-white/10 bg-[#1b1311] p-5 md:w-[280px] md:border-b-0 md:border-r">
+    <aside className="sticky top-0 h-screen w-full border-b border-white/10 bg-[#1b1311] p-5 md:w-[280px] md:border-b-0 md:border-r print:hidden">
       <div className="mb-8 rounded-xl border border-amber-500/20 bg-[#2a1b18] p-4">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Dashboard</p>
         <h2 className="mt-2 text-2xl font-black text-amber-100">Desi Vesi RMS</h2>

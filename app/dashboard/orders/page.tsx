@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getOrders } from "@/lib/orders-data";
-import { deleteOrderAction } from "./actions";
+import { deleteOrderAction, updateOrderStatusAction } from "./actions";
+import OrderStatusControl from "./components/OrderStatusControl";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export default async function OrdersPage() {
       ) : (
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#211715]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[1020px] text-left text-sm">
               <thead className="bg-[#2a1b18] text-stone-200">
                 <tr>
                   <th className="px-4 py-3 font-bold">Order ID</th>
@@ -53,6 +54,7 @@ export default async function OrdersPage() {
                   <th className="px-4 py-3 font-bold">Date & Time</th>
                   <th className="px-4 py-3 font-bold">Items</th>
                   <th className="px-4 py-3 font-bold">Total</th>
+                  <th className="px-4 py-3 font-bold">Status</th>
                   <th className="px-4 py-3 font-bold">Actions</th>
                 </tr>
               </thead>
@@ -73,15 +75,37 @@ export default async function OrdersPage() {
                     </td>
                     <td className="px-4 py-3 font-black text-amber-200">{formatPkr(order.totalPkr)}</td>
                     <td className="px-4 py-3">
-                      <form action={deleteOrderAction}>
-                        <input type="hidden" name="id" value={order.id} />
-                        <button
-                          type="submit"
-                          className="inline-flex items-center rounded-md border border-red-300/40 bg-red-300/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-100 transition-colors hover:bg-red-300/20"
-                        >
-                          Delete
-                        </button>
-                      </form>
+                      <OrderStatusControl orderId={order.id} initialStatus={order.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                        {order.status === "confirmed" ? (
+                          <Link
+                            href={`/dashboard/orders/${order.id}/invoice`}
+                            className="inline-flex shrink-0 items-center rounded-md border border-amber-300/30 bg-amber-300/15 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-100 shadow-sm shadow-black/10 transition-colors hover:bg-amber-300/25"
+                          >
+                            Invoice PDF
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            title="Confirm the order before generating the invoice."
+                            className="inline-flex shrink-0 cursor-not-allowed items-center rounded-md border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-100/50 opacity-60"
+                          >
+                            Invoice PDF
+                          </button>
+                        )}
+                        <form action={deleteOrderAction}>
+                          <input type="hidden" name="id" value={order.id} />
+                          <button
+                            type="submit"
+                            className="inline-flex shrink-0 items-center rounded-md border border-red-300/40 bg-red-300/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-100 transition-colors hover:bg-red-300/20"
+                          >
+                            Delete
+                          </button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))}

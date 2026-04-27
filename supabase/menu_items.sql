@@ -237,10 +237,38 @@ create table if not exists public.orders (
   subtotal_pkr integer not null check (subtotal_pkr >= 0),
   tax_pkr integer not null default 0 check (tax_pkr >= 0),
   total_pkr integer not null check (total_pkr >= 0),
+  status text not null default 'pending' constraint orders_status_valid check (status in ('pending', 'confirmed')),
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.orders
+  add column if not exists status text;
+
+update public.orders
+set status = 'pending'
+where status is null or status not in ('pending', 'confirmed');
+
+alter table public.orders
+  alter column status set default 'pending';
+
+alter table public.orders
+  alter column status set not null;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'orders_status_valid'
+      and conrelid = 'public.orders'::regclass
+  ) then
+    alter table public.orders
+      add constraint orders_status_valid check (status in ('pending', 'confirmed'));
+  end if;
+end;
+$$;
 
 create or replace function public.update_orders_updated_at()
 returns trigger
@@ -280,6 +308,14 @@ on public.orders
 for delete
 to authenticated
 using (true);
+
+drop policy if exists orders_update_authenticated on public.orders;
+create policy orders_update_authenticated
+on public.orders
+for update
+to authenticated
+using (true)
+with check (true);
 
 create table if not exists public.order_items (
   id uuid primary key default gen_random_uuid(),
